@@ -4,6 +4,7 @@ const path = require('path');
 const Modules = require('../models/module');
 const ModulesRouter = express.Router();
 const fs = require('fs');
+const { log } = require('console');
 
 // Configurar multer
 const storage = multer.diskStorage({
@@ -14,21 +15,6 @@ const storage = multer.diskStorage({
         const fileName = `${req.body.code}-${req.body.name}${path.extname(file.originalname)}`;
         cb(null, fileName);
     }
-});
-
-
-//Listar Modules
-ModulesRouter.get("/", (req,res)=>{
-    Modules.find()
-        .then(datos => res.json({Modules:datos}))
-        .catch(error=>res.json({mensaje:error}))
-});
-
-//Obtener module por id
-ModulesRouter.get("/:id", (req,res)=>{
-    Modules.findById({_id: req.params.id})
-        .then(datos=>res.json(datos))
-        .catch(error=>res.json({mensaje:error}))
 });
 
 //Guardar module
@@ -51,68 +37,89 @@ ModulesRouter.post("/", upload.single('image'), (req, res) => {
 });
 
 // Modificar module
-ModulesRouter.patch("/:id", (req,res)=>{
-    const moduleId = req.params.id;
-    const updatedModule = req.body;
+ModulesRouter.put("/:id", upload.single('image'), async (req, res) => {
+    try {
+        const moduleExistente = await Modules.findById(req.params.id);
 
-    Modules.findById(moduleId)
-        .then(existingModule => {
-            if (!existingModule) {
-                return res.status(404).json({ mensaje: 'Módulo no encontrado.' });
+        let updateData = { ...req.body }; // Copiar todos los datos del cuerpo de la solicitud
+
+        // Verificar si se proporciona una nueva imagen
+        if (req.file) {
+            // Verificar si la imagen existente y la nueva imagen tienen extensiones diferentes
+            if (moduleExistente && moduleExistente.image && path.extname(moduleExistente.image) !== path.extname(req.file.originalname)) {
+                // Eliminar la imagen existente si tienen extensiones diferentes
+                if (fs.existsSync(moduleExistente.image)) {
+                    fs.unlinkSync(moduleExistente.image);
+                    console.log("La imagen anterior fue eliminada correctamente.");
+                }
             }
 
-            // Verificar si se proporciona una nueva imagen
-            if (updatedModule.image) {
-                // Eliminar la imagen existente, si existe
-                if (existingModule.image && fs.existsSync(existingModule.image)) {
-                    fs.unlinkSync(existingModule.image);
+            // Generar un nuevo nombre de archivo único para la imagen
+            const newFileName = `${req.body.code}-${req.body.name}${path.extname(req.file.originalname)}`;
+            const newImagePath = path.join('uploads/modules/', newFileName);
+
+            // Actualizar la ruta de la imagen en multer
+            req.file.path = newImagePath;
+
+            updateData.image = newImagePath;
+
+            // Imprimir el nombre de archivo y la ruta de la nueva imagen
+            console.log("Nuevo nombre de archivo y ruta de imagen:", newFileName, newImagePath);
+        } else {
+            // Si no se proporciona una nueva imagen, pero el código o el nombre del module cambian, actualiza el nombre de archivo de la imagen si es necesario
+            if (req.body.code !== moduleExistente.code || req.body.name !== moduleExistente.name) {
+                // Construir el nuevo nombre de archivo único para la imagen
+                const newFileName = `${req.body.code}-${req.body.name}${path.extname(moduleExistente.image)}`;
+
+                // Generar la nueva ruta de la imagen
+                const newImagePath = path.join('uploads/modules/', newFileName);
+
+                // Renombrar la imagen en el sistema de archivos
+                if (fs.existsSync(moduleExistente.image)) {
+                    fs.renameSync(moduleExistente.image, newImagePath);
                 }
 
-                // Guardar la nueva imagen con el nombre actualizado
-                const fileName = `${updatedModule.code}-${updatedModule.name}${path.extname(updatedModule.image)}`;
-                const imagePath = path.join('uploads/modules/', fileName);
-                updatedModule.image = imagePath;
+                // Actualizar la ruta de la imagen en los datos a actualizar
+                updateData.image = newImagePath;
             }
+        }
 
-            // Actualizar el módulo
-            Modules.findByIdAndUpdate(moduleId, updatedModule, { new: true })
-                .then(updatedModule => {
-                    res.json(updatedModule);
-                })
-                .catch(error => {
-                    console.error(error);
-                    res.status(500).json({ mensaje: 'Error al modificar el módulo.' });
-                });
-        })
-        .catch(error => {
-            console.error(error);
-            res.status(500).json({ mensaje: 'Error al modificar el módulo.' });
-        });
+        // Actualizar los datos del module
+        const moduleModificado = await Modules.findByIdAndUpdate(req.params.id, updateData, { new: true });
+        res.json(moduleModificado);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ mensaje: 'Error al modificar el module. ' + error });
+    }
+});
+
+
+//Listar Modules
+ModulesRouter.get("/", (req,res)=>{
+    Modules.find()
+        .then(datos => res.json({Modules:datos}))
+        .catch(error=>res.json({mensaje:error}))
+});
+
+//Obtener module por id
+ModulesRouter.get("/:id", (req,res)=>{
+    Modules.findById({_id: req.params.id})
+        .then(datos=>res.json(datos))
+        .catch(error=>res.json({mensaje:error}))
+});
+
+//Ajustar estado de module
+ModulesRouter.patch("/:id/state", (req,res)=>{
+    Modules.findByIdAndUpdate(req.params.id, {state: req.body.state}, {new: true})
+    .then(moduleModificado => res.json(moduleModificado))
+    .catch(error => res.json({mensaje: error}));
 });
 
 //Eliminar module
 ModulesRouter.delete("/:id", (req,res)=>{
-    Modules.findById(req.params.id)
-        .then(module => {
-            if (!module) {
-                return res.status(404).json({ mensaje: 'Módulo no encontrado.' });
-            }
-
-            // Eliminar la imagen existente, si existe
-            if (module.image && fs.existsSync(module.image)) {
-                fs.unlinkSync(module.image);
-            }
-
-            // Eliminar el módulo
-            return Modules.deleteOne({_id: req.params.id});
-        })
-        .then(result => {
-            res.json(result);
-        })
-        .catch(error => {
-            console.error(error);
-            res.status(500).json({mensaje: 'Error al eliminar el módulo.'});
-        });
+    Modules.deleteOne({_id: req.params.id})
+        .then(datos=> res.json(datos))
+        .catch(error=> res.json({mensaje:error}))
 });
 
 module.exports = ModulesRouter;

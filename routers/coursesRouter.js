@@ -4,6 +4,7 @@ const path = require('path');
 const Courses = require('../models/courses');
 const CoursesRouter = express.Router();
 const fs = require('fs');
+const { log } = require('console');
 
 // Configurar multer
 const storage = multer.diskStorage({
@@ -35,52 +36,63 @@ CoursesRouter.post("/", upload.single('image'), (req, res) => {
         });
 });
 
-
-// Modificar course
+// Modificar curso
 CoursesRouter.put("/:id", upload.single('image'), async (req, res) => {
     try {
         const cursoExistente = await Courses.findById(req.params.id);
 
-        let updateData = {};
+        let updateData = { ...req.body }; // Copiar todos los datos del cuerpo de la solicitud
 
         // Verificar si se proporciona una nueva imagen
         if (req.file) {
-            // Eliminar la imagen existente, si existe
-            if (cursoExistente && cursoExistente.image && fs.existsSync(cursoExistente.image)) {
-                fs.unlinkSync(cursoExistente.image);
+            // Verificar si la imagen existente y la nueva imagen tienen extensiones diferentes
+            if (cursoExistente && cursoExistente.image && path.extname(cursoExistente.image) !== path.extname(req.file.originalname)) {
+                // Eliminar la imagen existente si tienen extensiones diferentes
+                if (fs.existsSync(cursoExistente.image)) {
+                    fs.unlinkSync(cursoExistente.image);
+                    console.log("La imagen anterior fue eliminada correctamente.");
+                }
             }
 
-            // Guardar la nueva imagen con el nombre actualizado
-            const fileName = `${req.body.code}-${req.body.name}${path.extname(req.file.originalname)}`;
-            const imagePath = path.join('uploads/courses/', fileName);
+            // Generar un nuevo nombre de archivo único para la imagen
+            const newFileName = `${req.body.code}-${req.body.name}${path.extname(req.file.originalname)}`;
+            const newImagePath = path.join('uploads/courses/', newFileName);
 
             // Actualizar la ruta de la imagen en multer
-            req.file.path = imagePath;
+            req.file.path = newImagePath;
 
-            updateData.image = imagePath;
+            updateData.image = newImagePath;
+
+            // Imprimir el nombre de archivo y la ruta de la nueva imagen
+            console.log("Nuevo nombre de archivo y ruta de imagen:", newFileName, newImagePath);
         } else {
-            // Si no se proporciona una nueva imagen, verificar si se modificó el código y/o nombre
+            // Si no se proporciona una nueva imagen, pero el código o el nombre del curso cambian, actualiza el nombre de archivo de la imagen si es necesario
             if (req.body.code !== cursoExistente.code || req.body.name !== cursoExistente.name) {
-                // Construir el nuevo nombre de la imagen con el código y nombre actualizados
-                const newImageName = `${req.body.code}-${req.body.name}${path.extname(cursoExistente.image)}`;
+                // Construir el nuevo nombre de archivo único para la imagen
+                const newFileName = `${req.body.code}-${req.body.name}${path.extname(cursoExistente.image)}`;
+
+                // Generar la nueva ruta de la imagen
+                const newImagePath = path.join('uploads/courses/', newFileName);
+
                 // Renombrar la imagen en el sistema de archivos
                 if (fs.existsSync(cursoExistente.image)) {
-                    fs.renameSync(cursoExistente.image, path.join(path.dirname(cursoExistente.image), newImageName));
-                    // Actualizar la ruta de la imagen en los datos a actualizar
-                    updateData.image = path.join(path.dirname(cursoExistente.image), newImageName);
+                    fs.renameSync(cursoExistente.image, newImagePath);
                 }
+
+                // Actualizar la ruta de la imagen en los datos a actualizar
+                updateData.image = newImagePath;
             }
         }
 
         // Actualizar los datos del curso
-        const cursoModificado = await Courses.findByIdAndUpdate(req.params.id, { ...req.body, ...updateData }, { new: true });
-
+        const cursoModificado = await Courses.findByIdAndUpdate(req.params.id, updateData, { new: true });
         res.json(cursoModificado);
     } catch (error) {
         console.error(error);
         res.status(500).json({ mensaje: 'Error al modificar el curso. ' + error });
     }
 });
+
 
 //Listar Courses
 CoursesRouter.get("/", (req,res)=>{

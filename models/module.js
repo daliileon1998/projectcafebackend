@@ -29,11 +29,7 @@ const usuarioSquema = mongoose.Schema({
         state:{
             type:'string',
             required:true
-        },
-        image:{
-            type:'string',
-            required:true
-        }   
+        }
     },
     image:{
         type:'string',
@@ -51,10 +47,6 @@ const usuarioSquema = mongoose.Schema({
                     required: true
                 },
                 content: {
-                    type: 'string',
-                    required: true
-                },
-                image: {
                     type: 'string',
                     required: true
                 },
