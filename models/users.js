@@ -6,6 +6,10 @@ const usuarioSquema = mongoose.Schema({
             required: true,
             unique: true
         },
+        name:{
+            type:'string',
+            required: true,
+        },
         email:{
             type:'string',
             unique: true

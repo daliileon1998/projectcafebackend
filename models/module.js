@@ -1,6 +1,6 @@
 const mongoose = require('../db/conectionDB');
 
-const usuarioSquema = mongoose.Schema({
+const moduloSquema = mongoose.Schema({
     code: {
         type: 'string',
         required: true,
@@ -81,4 +81,4 @@ const usuarioSquema = mongoose.Schema({
     versionKey: false
 });
 
-module.exports = mongoose.model('Module', usuarioSquema);
+module.exports = mongoose.model('Module', moduloSquema);

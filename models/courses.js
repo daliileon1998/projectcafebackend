@@ -1,6 +1,6 @@
 const mongoose = require('../db/conectionDB');
 
-const usuarioSquema = mongoose.Schema({
+const cursoSquema = mongoose.Schema({
         code:{
             type:'string',
             required: true,
@@ -27,4 +27,4 @@ const usuarioSquema = mongoose.Schema({
     }
 );
 
-module.exports = mongoose.model('Courses',usuarioSquema);
+module.exports = mongoose.model('Courses',cursoSquema);
