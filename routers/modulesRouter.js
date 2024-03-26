@@ -6,90 +6,100 @@ const ModulesRouter = express.Router();
 const fs = require('fs');
 const { log } = require('console');
 
-// Configurar multer
+// Configuración de multer para manejar la carga de imágenes y documentos
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/modules/');
+        if (file.fieldname === 'imagen') {
+            cb(null, 'uploads/modules/');
+        } else if (file.fieldname === 'documentos') {
+            cb(null, 'uploads/modules/documents/');
+        } else {
+            cb(new Error('Campo de archivo no válido'));
+        }
     },
     filename: (req, file, cb) => {
-        const fileName = `${req.body.code}-${req.body.name}${path.extname(file.originalname)}`;
-        cb(null, fileName);
+        if (file.fieldname === 'imagen') {
+            // Utilizar el código y el nombre de la lección para las imágenes
+            cb(null, `${req.body.code}-${req.body.name}${path.extname(file.originalname)}`);
+        } else if (file.fieldname === 'documentos') {
+            // Mantener el nombre original del archivo para los documentos
+            cb(null, file.originalname);
+        } else {
+            cb(new Error('Campo de archivo no válido'));
+        }
     }
 });
 
-//Guardar module
-const upload = multer({ storage: storage });
-ModulesRouter.post("/", upload.single('image'), (req, res) => {
-    const module = new Modules({
-        ...req.body,
-        image: req.file.path
-    });
-
-    module.save()
-        .then(data => {
-            console.log(data);
-            res.json(data);
-        })
-        .catch(error => {
-            console.log(error);
-            res.json({ mensaje: error });
-        });
+// Crear objeto multer y pasar la configuración de almacenamiento
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // Límite de tamaño de archivo: 5 MB
+    fileFilter: (req, file, cb) => {
+        // Comprobar si el archivo es una imagen o un documento
+        if (file.fieldname === 'imagen') {
+            if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+                return cb(new Error('Solo se permiten archivos de imagen.'));
+            }
+        } else if (file.fieldname === 'documentos') {
+            if (!file.originalname.match(/\.(pdf|doc|docx)$/)) {
+                return cb(new Error('Solo se permiten archivos de documento.'));
+            }
+        }
+        cb(null, true);
+    }
 });
 
-// Modificar module
-ModulesRouter.put("/:id", upload.single('image'), async (req, res) => {
+// Guardar módulo con imágenes y documentos
+ModulesRouter.post("/", upload.fields([{ name: 'imagen', maxCount: 1 }, { name: 'documentos', maxCount: 5 }]), async (req, res) => {
+    try {
+        const imagen = req.files['imagen'] ? req.files['imagen'][0].path : '';
+        const documentos = req.files['documentos'] ? req.files['documentos'].map(file => ({
+            name: file.originalname,  // Corregir el nombre del campo de nombre
+            route: file.path           // Corregir el nombre del campo de ruta
+        })) : [];
+
+        console.log("documentos ---------->", documentos);
+
+        const module = new Modules({
+            ...req.body,
+            image: imagen,
+            documents: documentos
+        });
+
+        const data = await module.save();
+        console.log(data);
+        res.json(data);
+    } catch (error) {
+        console.log(error);
+        res.json({ mensaje: error });
+    }
+});
+
+
+// Modificar módulo con imágenes y documentos
+ModulesRouter.put("/:id", upload.fields([{ name: 'imagen', maxCount: 1 }, { name: 'documentos', maxCount: 5 }]), async (req, res) => {
     try {
         const moduleExistente = await Modules.findById(req.params.id);
 
-        let updateData = { ...req.body }; // Copiar todos los datos del cuerpo de la solicitud
+        let updateData = { ...req.body };
 
-        // Verificar si se proporciona una nueva imagen
-        if (req.file) {
-            // Verificar si la imagen existente y la nueva imagen tienen extensiones diferentes
-            if (moduleExistente && moduleExistente.image && path.extname(moduleExistente.image) !== path.extname(req.file.originalname)) {
-                // Eliminar la imagen existente si tienen extensiones diferentes
-                if (fs.existsSync(moduleExistente.image)) {
-                    fs.unlinkSync(moduleExistente.image);
-                    console.log("La imagen anterior fue eliminada correctamente.");
-                }
-            }
-
-            // Generar un nuevo nombre de archivo único para la imagen
-            const newFileName = `${req.body.code}-${req.body.name}${path.extname(req.file.originalname)}`;
-            const newImagePath = path.join('uploads/modules/', newFileName);
-
-            // Actualizar la ruta de la imagen en multer
-            req.file.path = newImagePath;
-
-            updateData.image = newImagePath;
-
-            // Imprimir el nombre de archivo y la ruta de la nueva imagen
-            console.log("Nuevo nombre de archivo y ruta de imagen:", newFileName, newImagePath);
-        } else {
-            // Si no se proporciona una nueva imagen, pero el código o el nombre del module cambian, actualiza el nombre de archivo de la imagen si es necesario
-            if (req.body.code !== moduleExistente.code || req.body.name !== moduleExistente.name) {
-                // Construir el nuevo nombre de archivo único para la imagen
-                const newFileName = `${req.body.code}-${req.body.name}${path.extname(moduleExistente.image)}`;
-
-                // Generar la nueva ruta de la imagen
-                const newImagePath = path.join('uploads/modules/', newFileName);
-
-                // Renombrar la imagen en el sistema de archivos
-                if (fs.existsSync(moduleExistente.image)) {
-                    fs.renameSync(moduleExistente.image, newImagePath);
-                }
-
-                // Actualizar la ruta de la imagen en los datos a actualizar
-                updateData.image = newImagePath;
-            }
+        if (req.files['imagen']) {
+            updateData.image = req.files['imagen'][0].path;
         }
 
-        // Actualizar los datos del module
+        if (req.files['documentos'] && req.files['documentos'].length > 0) {
+            const nuevosDocumentos = req.files['documentos'].map(file => ({
+                nombre: file.originalname,
+                ruta: file.path
+            }));
+            updateData.documents = [...moduleExistente.documents, ...nuevosDocumentos];
+        }
+
         const moduleModificado = await Modules.findByIdAndUpdate(req.params.id, updateData, { new: true });
         res.json(moduleModificado);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ mensaje: 'Error al modificar el module. ' + error });
+        res.status(500).json({ mensaje: 'Error al modificar el módulo. ' + error });
     }
 });
 

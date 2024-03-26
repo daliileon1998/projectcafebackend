@@ -1,41 +1,49 @@
 const mongoose = require('../db/conectionDB');
 
 const usuarioSquema = mongoose.Schema({
-    code:{
-        type:'string',
+    code: {
+        type: 'string',
         required: true,
     },
-    name:{
-        type:'string',
+    name: {
+        type: 'string',
         unique: true
     },
-    state:{
-        type:'string',
-        required:true
+    description: {
+        type: 'string',
+        required: true
     },
-    course:{
-        code:{
-            type:'string',
+    state: {
+        type: 'string',
+        required: true
+    },
+    course: {
+        id: {
+            type: 'string',
             required: true,
         },
-        name:{
-            type:'string',
+        code: {
+            type: 'string',
+            required: true,
+        },
+        name: {
+            type: 'string',
             unique: true
         },
-        description:{
-            type:'string',
-            required:true
+        description: {
+            type: 'string',
+            required: true
         },
-        state:{
-            type:'string',
-            required:true
+        state: {
+            type: 'string',
+            required: true
         }
     },
-    image:{
-        type:'string',
-        required:true
+    image: {
+        type: 'string',
+        required: true
     },
-    lessons:{
+    lessons: {
         type: [
             {
                 code: {
@@ -57,10 +65,20 @@ const usuarioSquema = mongoose.Schema({
             }
         ],
         required: true
-    }   
-},{
+    },
+    documents: [{
+        name: {
+            type: String,
+            required: true
+        },
+        route: {
+            type: String,
+            required: true
+        }
+    }]
+}, {
     collection: "Module",
     versionKey: false
 });
 
-module.exports = mongoose.model('Module',usuarioSquema);
+module.exports = mongoose.model('Module', usuarioSquema);
