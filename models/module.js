@@ -2,64 +2,65 @@ const mongoose = require('../db/conectionDB');
 
 const moduloSquema = mongoose.Schema({
     code: {
-        type: 'string',
+        type: String,
         required: true,
     },
     name: {
-        type: 'string',
-        unique: true
+        type: String,
+        unique: true,
+        required: true
     },
     description: {
-        type: 'string',
+        type: String,
         required: true
     },
     state: {
-        type: 'string',
+        type: String,
         required: true
     },
     course: {
         id: {
-            type: 'string',
+            type: String,
             required: true,
         },
         code: {
-            type: 'string',
+            type: String,
             required: true,
         },
         name: {
-            type: 'string',
-            unique: true
+            type: String,
+            required: true,
         },
         description: {
-            type: 'string',
-            required: true
+            type: String,
+            required: true,
         },
         state: {
-            type: 'string',
-            required: true
+            type: String,
+            required: true,
         }
     },
     image: {
-        type: 'string',
+        type: String,
         required: true
     },
     lessons: {
         type: [
             {
                 code: {
-                    type: 'string',
+                    type: String,
                     required: true
                 },
                 name: {
-                    type: 'string',
+                    type: String,
                     required: true
                 },
                 content: {
-                    type: 'string',
+                    type: String,
                     required: true
                 },
                 state: {
-                    type: 'string',
+                    type: String,
                     required: true
                 }
             }

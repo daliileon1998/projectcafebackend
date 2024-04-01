@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const Modules = require('../models/module');
+const Courses = require('../models/courses');
 const ModulesRouter = express.Router();
 const fs = require('fs');
 const { log } = require('console');
@@ -118,6 +119,43 @@ ModulesRouter.get("/:id", (req,res)=>{
         .catch(error=>res.json({mensaje:error}))
 });
 
+
+//Obtener module por id curso
+ModulesRouter.get("/courses/:id", (req,res)=>{
+    Modules.find({'course.id': req.params.id })
+        .then(datos=>res.json(datos))
+        .catch(error=>res.json({mensaje:error}))
+});
+
+ModulesRouter.get("/coursesmodules/:id", async (req, res) => {
+    try {
+        // Obtener el módulo específico
+        const modulo = await Modules.findById(req.params.id);
+        if (!modulo) {
+            return res.status(404).json({ mensaje: "Módulo no encontrado" });
+        }
+        
+        // Obtener las lecciones del módulo
+        const leccionesModulo = modulo.lessons; // Asume que las lecciones están almacenadas en un campo llamado 'lecciones'
+
+        // Obtener el ID del curso del módulo
+        const cursoId = modulo.course.id;
+        
+        // Buscar todos los módulos del curso
+        const modulosCurso = await Modules.find({ 'course.id': cursoId });
+
+        // Filtrar el curso específico
+        const curso = await Courses.findById(cursoId);
+        if (!curso) {
+            return res.status(404).json({ mensaje: "Curso no encontrado" });
+        }
+
+        return res.json({ curso, modulosCurso, leccionesModulo,modulo });
+    } catch (error) {
+        return res.status(500).json({ mensaje: "Error al obtener los datos", error });
+    }
+});
+
 //Ajustar estado de module
 ModulesRouter.patch("/:id/state", (req,res)=>{
     Modules.findByIdAndUpdate(req.params.id, {state: req.body.state}, {new: true})
@@ -131,5 +169,6 @@ ModulesRouter.delete("/:id", (req,res)=>{
         .then(datos=> res.json(datos))
         .catch(error=> res.json({mensaje:error}))
 });
+
 
 module.exports = ModulesRouter;

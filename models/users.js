@@ -25,7 +25,11 @@ const usuarioSquema = mongoose.Schema({
         password:{
             type:'string',
             required:true
-        }   
+        },
+        password2:{
+            type:'string',
+            required:true
+        }     
     },{
         collection: "Users",
         versionKey: false

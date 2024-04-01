@@ -20,6 +20,7 @@ const storage = multer.diskStorage({
 //Guardar course
 const upload = multer({ storage: storage });
 CoursesRouter.post("/", upload.single('image'), (req, res) => {
+    
     const course = new Courses({
         ...req.body,
         image: req.file.path
