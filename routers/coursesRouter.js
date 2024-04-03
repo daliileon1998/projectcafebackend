@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const Courses = require('../models/courses');
+const Modules = require('../models/module');
 const CoursesRouter = express.Router();
 const fs = require('fs');
 const { log } = require('console');
@@ -102,12 +103,21 @@ CoursesRouter.get("/", (req,res)=>{
         .catch(error=>res.json({mensaje:error}))
 });
 
+CoursesRouter.get("/activos", (req, res) => {
+    Courses.find({ state: 1 })
+        .then(datos => res.json({Courses:datos}))
+        .catch(error => res.json({ mensaje: error }));
+});
+
+
 //Obtener course por id
 CoursesRouter.get("/:id", (req,res)=>{
     Courses.findById({_id: req.params.id})
         .then(datos=>res.json(datos))
         .catch(error=>res.json({mensaje:error}))
 });
+
+
 
 //Ajustar estado de curso
 CoursesRouter.patch("/:id/state", (req,res)=>{
@@ -121,6 +131,13 @@ CoursesRouter.delete("/:id", (req,res)=>{
     Courses.deleteOne({_id: req.params.id})
         .then(datos=> res.json(datos))
         .catch(error=> res.json({mensaje:error}))
+});
+
+CoursesRouter.get("/documents/:id", async (req, res) => {
+    const modulosCurso = await Modules.find({ 'course.id': req.params.id , 'state' : 1 });
+    const curso = await Courses.findById(req.params.id);
+    return res.json({modulosCurso,curso});
+
 });
 
 module.exports = CoursesRouter;

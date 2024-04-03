@@ -1,6 +1,8 @@
 const express = require('express');
 const bcrypt = require('bcrypt'); // Importa bcrypt para encriptar la contraseña
+const crypto = require('crypto');
 const Usuarios = require('../models/users');
+const jwt = require('jsonwebtoken');
 const UsuariosRouter = express.Router();
 
 // Listar Usuarios
@@ -89,5 +91,28 @@ UsuariosRouter.delete("/:id", (req, res) => {
         .then(datos => res.json(datos))
         .catch(error => res.json({ mensaje: error }))
 });
+
+// Ruta para iniciar sesión
+UsuariosRouter.post('/login', async (req, res) => {
+ 
+    // Verificar si el usuario existe en la base de datos
+    const usuario = await Usuarios.findOne({ email: req.body.email });
+    if (!usuario) return res.status(400).json({ mensaje: 'Correo electrónico o contraseña incorrectos.'});
+  
+    // Verificar la contraseña
+    const validPassword = await bcrypt.compare(req.body.password, usuario.password);
+    if (!validPassword) return res.status(400).json({ mensaje: 'Correo electrónico o contraseña incorrectos.'});
+  
+
+    const claveSecreta = generarClaveSecreta();
+    // Generar token JWT
+    const token = jwt.sign({ _id: usuario._id }, claveSecreta);
+    res.status(200).json({ mensaje: 'Usuario logueado correctamente.', token : token}); // Enviar el token en el encabezado de respuesta
+  });
+
+
+  const generarClaveSecreta = () => {
+    return crypto.randomBytes(32).toString('hex');
+  };
 
 module.exports = UsuariosRouter;

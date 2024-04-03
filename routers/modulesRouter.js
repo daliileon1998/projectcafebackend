@@ -122,7 +122,7 @@ ModulesRouter.get("/:id", (req,res)=>{
 
 //Obtener module por id curso
 ModulesRouter.get("/courses/:id", (req,res)=>{
-    Modules.find({'course.id': req.params.id })
+    Modules.find({'course.id': req.params.id, 'state' : 1 })
         .then(datos=>res.json(datos))
         .catch(error=>res.json({mensaje:error}))
 });
