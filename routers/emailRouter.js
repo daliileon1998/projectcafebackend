@@ -15,15 +15,15 @@ EmailRouter.post('/contact', (req, res) => {
     const transporter = nodemailer.createTransport({
         service: 'Gmail', // Puedes usar cualquier otro servicio de correo electrónico
         auth: {
-            user: 'daliileon1998@gmail.com', // Cambia esto por tu dirección de correo electrónico
-            pass: 'pxvk sjpq lcla iwol' // Cambia esto por tu contraseña
+            user: 'projectcafe2024@gmail.com', // Cambia esto por tu dirección de correo electrónico
+            pass: 'lzxd pzkl jcin zgbj' // Cambia esto por tu contraseña
         }
     });
 
     // Configuración del mensaje de correo
     const mailOptions = {
         from: `${name} <${email}>`,
-        to: 'manueljhoanleonmantilla@gmail.com',
+        to: 'hernandres1015@gmail.com',
         cc: email,
         subject: 'Mensaje de contacto desde el formulario de Project Café',
         text: message
