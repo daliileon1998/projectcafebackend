@@ -25,7 +25,7 @@ EmailRouter.post('/contact', (req, res) => {
         from: `${name} <${email}>`,
         to: 'manueljhoanleonmantilla@gmail.com',
         cc: email,
-        subject: 'Mensaje de contacto desde el formulario de tu sitio web',
+        subject: 'Mensaje de contacto desde el formulario de Project Café',
         text: message
     };
 
