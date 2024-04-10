@@ -88,13 +88,20 @@ ModulesRouter.put("/:id", upload.fields([{ name: 'imagen', maxCount: 1 }, { name
             updateData.image = req.files['imagen'][0].path;
         }
 
-        if (req.files['documentos'] && req.files['documentos'].length > 0) {
+        /*if (req.files['documentos'] && req.files['documentos'].length > 0) {
             const nuevosDocumentos = req.files['documentos'].map(file => ({
                 nombre: file.originalname,
-                ruta: file.path
+                ruta: file.path,
             }));
             updateData.documents = [...moduleExistente.documents, ...nuevosDocumentos];
-        }
+        }*/
+
+        const documentos = req.files['documentos'] ? req.files['documentos'].map(file => ({
+            name: file.originalname,  // Corregir el nombre del campo de nombre
+            route: file.path           // Corregir el nombre del campo de ruta
+        })) : [];
+
+        updateData.documents = documentos;
 
         const moduleModificado = await Modules.findByIdAndUpdate(req.params.id, updateData, { new: true });
         res.json(moduleModificado);
@@ -103,7 +110,6 @@ ModulesRouter.put("/:id", upload.fields([{ name: 'imagen', maxCount: 1 }, { name
         res.status(500).json({ mensaje: 'Error al modificar el módulo. ' + error });
     }
 });
-
 
 //Listar Modules
 ModulesRouter.get("/", (req,res)=>{
